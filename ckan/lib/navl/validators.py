@@ -96,8 +96,8 @@ def ignore_missing(key, data, errors, context):
     value = data.get(key)
 
     if isinstance(value, df.Missing) or value is None:
-         data.pop(key, None)
-        raise StopOnError
+        data.pop(key, None)
+        raise df.StopOnError
 
 def ignore_empty(key, data, errors, context):
 
@@ -113,5 +113,5 @@ def convert_int(value, context):
     try:
         return int(value)
     except ValueError:
-        raise Invalid(_('Please enter an integer value'))
+        raise df.Invalid(_('Please enter an integer value'))
 
