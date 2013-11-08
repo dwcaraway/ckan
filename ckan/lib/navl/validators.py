@@ -2,10 +2,12 @@ import ckan.lib.navl.dictization_functions as df
 
 from ckan.common import _
 
-missing = df.missing
-StopOnError = df.StopOnError
-Invalid = df.Invalid
+import sys
 
+import logging
+
+log = logging.getLogger(__name__)
+missing = df.Missing()
 
 def identity_converter(key, data, errors, context):
     return
@@ -19,22 +21,22 @@ def keep_extras(key, data, errors, context):
 def not_missing(key, data, errors, context):
 
     value = data.get(key)
-    if value is missing:
-        errors[key].append(_('Missing value'))
-        raise StopOnError
+    if isinstance(value, df.Missing):
+        errors[key]=[_('Missing value')]
+        raise df.StopOnError
 
 def not_empty(key, data, errors, context):
 
     value = data.get(key)
-    if not value or value is missing:
-        errors[key].append(_('Missing value'))
-        raise StopOnError
+    if not value or isinstance(value, df.Missing):
+        errors[key]=[_('Missing value')]
+        raise df.StopOnError
 
 def if_empty_same_as(other_key):
 
     def callable(key, data, errors, context):
         value = data.get(key)
-        if not value or value is missing:
+        if not value or isinstance(value, df.Missing):
             data[key] = data[key[:-1] + (other_key,)]
 
     return callable
@@ -45,10 +47,10 @@ def both_not_empty(other_key):
     def callable(key, data, errors, context):
         value = data.get(key)
         other_value = data.get(key[:-1] + (other_key,))
-        if (not value or value is missing and
+        if (not value or isinstance(value, df.Missing) and
             not other_value or other_value is missing):
-            errors[key].append(_('Missing value'))
-            raise StopOnError
+            errors[key]=[_('Missing value')]
+            raise df.StopOnError
 
     return callable
 
@@ -62,15 +64,16 @@ def empty(key, data, errors, context):
 
 def ignore(key, data, errors, context):
 
-    value = data.pop(key, None)
-    raise StopOnError
+    data.pop(key, None)
+    errors.pop(key, None)
+    raise df.StopOnError
 
 def default(defalult_value):
 
     def callable(key, data, errors, context):
 
         value = data.get(key)
-        if not value or value is missing:
+        if not value or isinstance(value, df.Missing):
             data[key] = defalult_value
 
     return callable
@@ -92,8 +95,8 @@ def ignore_missing(key, data, errors, context):
     '''
     value = data.get(key)
 
-    if value is missing or value is None:
-        data.pop(key, None)
+    if isinstance(value, df.Missing) or value is None:
+         data.pop(key, None)
         raise StopOnError
 
 def ignore_empty(key, data, errors, context):
@@ -102,7 +105,8 @@ def ignore_empty(key, data, errors, context):
 
     if value is missing or not value:
         data.pop(key, None)
-        raise StopOnError
+        errors.pop(key, None)
+        raise df.StopOnError
 
 def convert_int(value, context):
 
